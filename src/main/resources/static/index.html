@@ -1,0 +1,306 @@
+<!-- src/main/resources/static/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Document Q&A Chatbot</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #38bdf8;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #334155;
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            color: #38bdf8;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .upload-area {
+            border: 2px dashed #475569;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .upload-area:hover { border-color: #38bdf8; }
+
+        input[type="file"] { display: none; }
+
+        .btn {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 0.6rem 1.4rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background: #0ea5e9; }
+        .btn:disabled { background: #475569; cursor: not-allowed; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 0.8rem;
+        }
+
+        .status-success { background: #166534; color: #86efac; }
+        .status-error { background: #7f1d1d; color: #fca5a5; }
+        .status-info { background: #1e3a5f; color: #93c5fd; }
+
+        .chat-box {
+            height: 350px;
+            overflow-y: auto;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #334155;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+
+        .message.user .bubble {
+            background: #1d4ed8;
+            color: white;
+            margin-left: auto;
+            border-radius: 12px 12px 4px 12px;
+        }
+
+        .message.bot .bubble {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 12px 12px 12px 4px;
+            border: 1px solid #334155;
+        }
+
+        .bubble {
+            display: inline-block;
+            padding: 0.7rem 1rem;
+            max-width: 85%;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .message.user { text-align: right; }
+
+        .input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus { border-color: #38bdf8; }
+
+        .loading { color: #94a3b8; font-style: italic; }
+        
+        .tech-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        
+        .tag {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            padding: 0.2rem 0.6rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📄 RAG Document Q&A</h1>
+    <p class="subtitle">Upload a PDF · Ask anything · Get AI-powered answers</p>
+
+    <!-- Upload Section -->
+    <div class="card">
+        <h2>Step 1 — Upload PDF</h2>
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <div id="uploadText">📁 Click to select a PDF file</div>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(this)">
+        <br>
+        <button class="btn" id="uploadBtn" onclick="uploadPdf()" disabled>Upload & Process</button>
+        <div id="uploadStatus"></div>
+    </div>
+
+    <!-- Chat Section -->
+    <div class="card">
+        <h2>Step 2 — Ask Questions</h2>
+        <div class="chat-box" id="chatBox">
+            <div class="message bot">
+                <div class="bubble">👋 Hi! Upload a PDF above, then ask me anything about it.</div>
+            </div>
+        </div>
+        <div class="input-row">
+            <input type="text" id="questionInput" placeholder="Ask a question about your document..."
+                   onkeydown="if(event.key === 'Enter') askQuestion()">
+            <button class="btn" onclick="askQuestion()">Send</button>
+        </div>
+    </div>
+
+    <!-- Tech stack info -->
+    <div class="tech-tags">
+        <span class="tag">☕ Java 17</span>
+        <span class="tag">🌱 Spring Boot</span>
+        <span class="tag">🔗 LangChain4j</span>
+        <span class="tag">🧠 Gemini</span>
+        <span class="tag">📐 Vector Store</span>
+        <span class="tag">📄 PDFBox</span>
+        <span class="tag">🔍 RAG Pipeline</span>
+    </div>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api';
+    let selectedFile = null;
+
+    function handleFileSelect(input) {
+        selectedFile = input.files[0];
+        if (selectedFile) {
+            document.getElementById('uploadText').textContent = `✅ ${selectedFile.name}`;
+            document.getElementById('uploadBtn').disabled = false;
+        }
+    }
+
+    async function uploadPdf() {
+        if (!selectedFile) return;
+
+        const statusDiv = document.getElementById('uploadStatus');
+        statusDiv.innerHTML = '<span class="status-badge status-info">⏳ Processing PDF chunks...</span>';
+        document.getElementById('uploadBtn').disabled = true;
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+            const response = await fetch(`${API_BASE}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                statusDiv.innerHTML = `<span class="status-badge status-success">✅ ${data.answer}</span>`;
+                addMessage('bot', '✅ Document processed! I\'m ready to answer your questions.');
+            } else {
+                statusDiv.innerHTML = `<span class="status-badge status-error">❌ ${data.answer}</span>`;
+            }
+        } catch (err) {
+            statusDiv.innerHTML = `<span class="status-badge status-error">❌ Server error. Is Spring Boot running?</span>`;
+        }
+
+        document.getElementById('uploadBtn').disabled = false;
+    }
+
+    async function askQuestion() {
+        const input = document.getElementById('questionInput');
+        const question = input.value.trim();
+        if (!question) return;
+
+        addMessage('user', question);
+        input.value = '';
+
+        const loadingId = addMessage('bot', '<span class="loading">🤔 Thinking...</span>');
+
+        try {
+            const response = await fetch(`${API_BASE}/ask`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            });
+            const data = await response.json();
+            updateMessage(loadingId, data.answer);
+        } catch (err) {
+            updateMessage(loadingId, '❌ Could not reach the server.');
+        }
+    }
+
+    let msgCounter = 0;
+
+    function addMessage(role, text) {
+        const id = `msg-${++msgCounter}`;
+        const chatBox = document.getElementById('chatBox');
+        const div = document.createElement('div');
+        div.className = `message ${role}`;
+        div.id = id;
+        div.innerHTML = `<div class="bubble">${text}</div>`;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return id;
+    }
+
+    function updateMessage(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.querySelector('.bubble').textContent = text;
+    }
+</script>
+
+</body>
+</html>
